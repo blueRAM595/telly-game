@@ -17,40 +17,42 @@
         </div>
     </div>
 
-    <!-- Контейнер для игры -->
     <div id="game-container" style="display:none;">
         <canvas id="canvas" style="width: 100vw; height: 100vh; background: #000;"></canvas>
     </div>
 
-    <!-- Подключаем библиотеку через проверенный CDN для 2026 года -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- Загружаем движок через другой проверенный источник -->
+    <script src="https://unpkg.com"></script>
 
     <script>
-        // Ждем полной загрузки страницы
-        window.onload = function() {
+        // Функция проверки наличия движка
+        function getPojav() {
+            return window.Pojav || window.PojavJS || (window.default && window.default.createRuntime ? window.default : null);
+        }
+
+        window.addEventListener('load', () => {
             const startBtn = document.getElementById('start-btn');
             const status = document.getElementById('status');
 
             startBtn.addEventListener('click', async () => {
                 const nick = document.getElementById('username').value;
-                
                 if (nick.length < 3) return alert("Ник слишком короткий");
 
-                // Проверяем, загрузилась ли библиотека (она может называться PojavJS или Pojav)
-                const library = window.Pojav || window.PojavJS;
+                const PojavEngine = getPojav();
 
-                if (!library) {
-                    return alert("Ошибка: Библиотека движка не смогла загрузиться. Попробуй обновить страницу или зайти через VPN.");
+                if (!PojavEngine) {
+                    console.error("Библиотека не найдена в window");
+                    return alert("Ошибка: Файл движка не найден (404 на сервере). Попробуй обновить страницу через CTRL+F5.");
                 }
 
                 startBtn.disabled = true;
-                status.innerText = "Загрузка 1.20.1...";
+                status.innerText = "Подготовка ресурсов...";
 
                 try {
                     document.getElementById('launcher').style.display = 'none';
                     document.getElementById('game-container').style.display = 'block';
 
-                    const mc = await library.createRuntime({
+                    const mc = await PojavEngine.createRuntime({
                         canvas: document.getElementById('canvas'),
                         version: '1.20.1',
                         root: './mods/', 
@@ -62,18 +64,16 @@
                         ]
                     });
 
+                    status.innerText = "Запуск Майнкрафта...";
                     await mc.start();
                 } catch (err) {
-                    console.error(err);
-                    alert("Ошибка при запуске игры. Проверь консоль.");
-                    document.getElementById('launcher').style.display = 'block';
-                    document.getElementById('game-container').style.display = 'none';
+                    console.error("Ошибка исполнения:", err);
+                    alert("Произошла ошибка при запуске. Подробности в консоли (F12).");
                     startBtn.disabled = false;
+                    status.innerText = "Ошибка запуска";
                 }
             });
-        };
+        });
     </script>
 </body>
 </html>
-
-
