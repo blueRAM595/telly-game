@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoTelly 1.20.1 Browser Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="launcher">
+        <div class="login-card">
+            <h1>AutoTelly Cloud</h1>
+            <p>Версия: 1.20.1 Fabric</p>
+            <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
+            <button id="start-btn" onclick="launchGame()">ЗАПУСТИТЬ ИГРУ</button>
+            <div id="status">Готов к запуску</div>
+        </div>
+    </div>
+
+    <!-- Контейнер для игры -->
+    <div id="game-container" style="display:none;">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script type="module">
+        // Мы явно привязываем функцию к window, чтобы HTML кнопка её увидела
+        window.launchGame = async function() {
+            const nick = document.getElementById('username').value;
+            const status = document.getElementById('status');
+            const startBtn = document.getElementById('start-btn');
+            
+            if (nick.length < 3) {
+                return alert("Ник слишком короткий");
+            }
+
+            // Блокируем кнопку, чтобы не нажимали много раз
+            startBtn.disabled = true;
+            status.innerText = "Инициализация движка...";
+
+            try {
+                // ВАЖНО: Мы используем динамический импорт внутри функции
+                // Если у тебя есть конкретная ссылка на JS файл движка, замени 'https://esm.sh'
+                const Pojav = await import('https://esm.sh'); 
+
+                document.getElementById('launcher').style.display = 'none';
+                document.getElementById('game-container').style.display = 'block';
+
+                status.innerText = "Загрузка ресурсов 1.20.1...";
+
+                const mc = await Pojav.createRuntime({
+                    canvas: document.getElementById('canvas'),
+                    version: '1.20.1',
+                    root: './mods/', 
+                    username: nick,
+                    memory: 4096,
+                    mods: [
+                        'autotelly.jar',
+                        'fabric-api.jar'
+                    ]
+                });
+
+                await mc.start();
+            } catch (err) {
+                console.error("Критическая ошибка:", err);
+                alert("Ошибка запуска! Проверь консоль (F12).");
+                startBtn.disabled = false;
+                status.innerText = "Ошибка запуска";
+            }
+        };
+    </script>
+</body>
+</html>
