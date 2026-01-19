@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoTelly 1.20.1 Browser Edition</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Добавил немного стилей для канваса, чтобы игра была на весь экран */
+        #canvas {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            background-color: black;
+        }
+        body, html { margin: 0; padding: 0; overflow: hidden; }
+    </style>
 </head>
 <body>
     <div id="launcher">
@@ -13,7 +23,7 @@
             <p>Версия: 1.20.1 Fabric</p>
             <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
             <button id="start-btn" onclick="launchGame()">ЗАПУСТИТЬ ИГРУ</button>
-            <div id="status">Готов к запуску</div>
+            <div id="status" style="margin-top: 15px; color: #555;">Готов к запуску</div>
         </div>
     </div>
 
@@ -23,34 +33,35 @@
     </div>
 
     <script type="module">
-        // Мы явно привязываем функцию к window, чтобы HTML кнопка её увидела
+        // Импортируем движок из надежного CDN
+        import { createRuntime } from 'https://cdn.jsdelivr.net';
+
+        // Привязываем функцию к window, чтобы HTML её увидел
         window.launchGame = async function() {
             const nick = document.getElementById('username').value;
             const status = document.getElementById('status');
             const startBtn = document.getElementById('start-btn');
             
             if (nick.length < 3) {
-                return alert("Ник слишком короткий");
+                return alert("Ник слишком короткий! Минимум 3 символа.");
             }
 
-            // Блокируем кнопку, чтобы не нажимали много раз
+            // Визуальное состояние
             startBtn.disabled = true;
             status.innerText = "Инициализация движка...";
 
             try {
-                // ВАЖНО: Мы используем динамический импорт внутри функции
-                // Если у тебя есть конкретная ссылка на JS файл движка, замени 'https://esm.sh'
-                const Pojav = await import('https://esm.sh'); 
-
+                // Переключаем интерфейс
                 document.getElementById('launcher').style.display = 'none';
                 document.getElementById('game-container').style.display = 'block';
 
-                status.innerText = "Загрузка ресурсов 1.20.1...";
+                status.innerText = "Загрузка 1.20.1 и модов...";
 
-                const mc = await Pojav.createRuntime({
+                // Запуск рантайма
+                const mc = await createRuntime({
                     canvas: document.getElementById('canvas'),
                     version: '1.20.1',
-                    root: './mods/', 
+                    root: './mods/', // Папка mods должна быть в корне сайта
                     username: nick,
                     memory: 4096,
                     mods: [
@@ -60,9 +71,15 @@
                 });
 
                 await mc.start();
+                console.log("Minecraft запущен!");
+
             } catch (err) {
-                console.error("Критическая ошибка:", err);
-                alert("Ошибка запуска! Проверь консоль (F12).");
+                console.error("Ошибка запуска:", err);
+                alert("Ошибка! Проверь консоль (F12). Скорее всего, нужно запустить сайт через сервер (Live Server).");
+                
+                // Возвращаем меню при ошибке
+                document.getElementById('launcher').style.display = 'block';
+                document.getElementById('game-container').style.display = 'none';
                 startBtn.disabled = false;
                 status.innerText = "Ошибка запуска";
             }
