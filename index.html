@@ -6,14 +6,9 @@
     <title>AutoTelly 1.20.1 Browser Edition</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Добавил немного стилей для канваса, чтобы игра была на весь экран */
-        #canvas {
-            width: 100vw;
-            height: 100vh;
-            display: block;
-            background-color: black;
-        }
-        body, html { margin: 0; padding: 0; overflow: hidden; }
+        #canvas { width: 100vw; height: 100vh; display: block; background: #000; }
+        body, html { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+        .login-card { text-align: center; padding: 50px; background: #f4f4f4; height: 100vh; }
     </style>
 </head>
 <body>
@@ -21,47 +16,46 @@
         <div class="login-card">
             <h1>AutoTelly Cloud</h1>
             <p>Версия: 1.20.1 Fabric</p>
-            <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
-            <button id="start-btn" onclick="launchGame()">ЗАПУСТИТЬ ИГРУ</button>
+            <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16" style="padding: 10px; font-size: 16px;">
+            <br><br>
+            <!-- Удалили onclick из HTML, будем вешать событие через JS -->
+            <button id="start-btn" style="padding: 15px 30px; cursor: pointer;">ЗАПУСТИТЬ ИГРУ</button>
             <div id="status" style="margin-top: 15px; color: #555;">Готов к запуску</div>
         </div>
     </div>
 
-    <!-- Контейнер для игры -->
     <div id="game-container" style="display:none;">
         <canvas id="canvas"></canvas>
     </div>
 
-    <script type="module">
-        // Импортируем движок из надежного CDN
-        import { createRuntime } from 'https://cdn.jsdelivr.net';
+    <!-- Используем обычный скрипт для загрузки, чтобы избежать CORS перенаправлений модуля -->
+    <script src="https://unpkg.com"></script>
 
-        // Привязываем функцию к window, чтобы HTML её увидел
-        window.launchGame = async function() {
+    <script>
+        // Теперь работаем через обычный JS, так как unpkg подгружает библиотеку глобально
+        document.getElementById('start-btn').addEventListener('click', async () => {
             const nick = document.getElementById('username').value;
             const status = document.getElementById('status');
             const startBtn = document.getElementById('start-btn');
             
-            if (nick.length < 3) {
-                return alert("Ник слишком короткий! Минимум 3 символа.");
-            }
+            if (nick.length < 3) return alert("Ник слишком короткий!");
 
-            // Визуальное состояние
             startBtn.disabled = true;
-            status.innerText = "Инициализация движка...";
+            status.innerText = "Инициализация...";
 
             try {
-                // Переключаем интерфейс
+                // Если библиотека загрузилась через unpkg, она будет доступна в объекте Pojav
+                if (typeof Pojav === 'undefined') {
+                    throw new Error("Библиотека PojavJS не загрузилась. Проверь интернет.");
+                }
+
                 document.getElementById('launcher').style.display = 'none';
                 document.getElementById('game-container').style.display = 'block';
 
-                status.innerText = "Загрузка 1.20.1 и модов...";
-
-                // Запуск рантайма
-                const mc = await createRuntime({
+                const mc = await Pojav.createRuntime({
                     canvas: document.getElementById('canvas'),
                     version: '1.20.1',
-                    root: './mods/', // Папка mods должна быть в корне сайта
+                    root: './mods/', 
                     username: nick,
                     memory: 4096,
                     mods: [
@@ -70,20 +64,17 @@
                     ]
                 });
 
+                status.innerText = "Запуск игры...";
                 await mc.start();
-                console.log("Minecraft запущен!");
 
             } catch (err) {
-                console.error("Ошибка запуска:", err);
-                alert("Ошибка! Проверь консоль (F12). Скорее всего, нужно запустить сайт через сервер (Live Server).");
-                
-                // Возвращаем меню при ошибке
-                document.getElementById('launcher').style.display = 'block';
-                document.getElementById('game-container').style.display = 'none';
+                console.error(err);
+                alert("Критическая ошибка! Посмотри консоль (F12).");
                 startBtn.disabled = false;
-                status.innerText = "Ошибка запуска";
+                status.innerText = "Ошибка: " + err.message;
             }
-        };
+        });
     </script>
 </body>
 </html>
+
