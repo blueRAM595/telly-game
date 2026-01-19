@@ -5,76 +5,75 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoTelly 1.20.1 Browser Edition</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        #canvas { width: 100vw; height: 100vh; display: block; background: #000; }
-        body, html { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
-        .login-card { text-align: center; padding: 50px; background: #f4f4f4; height: 100vh; }
-    </style>
 </head>
 <body>
     <div id="launcher">
         <div class="login-card">
             <h1>AutoTelly Cloud</h1>
             <p>Версия: 1.20.1 Fabric</p>
-            <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16" style="padding: 10px; font-size: 16px;">
-            <br><br>
-            <!-- Удалили onclick из HTML, будем вешать событие через JS -->
-            <button id="start-btn" style="padding: 15px 30px; cursor: pointer;">ЗАПУСТИТЬ ИГРУ</button>
-            <div id="status" style="margin-top: 15px; color: #555;">Готов к запуску</div>
+            <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
+            <button id="start-btn">ЗАПУСТИТЬ ИГРУ</button>
+            <div id="status">Готов к запуску</div>
         </div>
     </div>
 
+    <!-- Контейнер для игры -->
     <div id="game-container" style="display:none;">
-        <canvas id="canvas"></canvas>
+        <canvas id="canvas" style="width: 100vw; height: 100vh; background: #000;"></canvas>
     </div>
 
-    <!-- Используем обычный скрипт для загрузки, чтобы избежать CORS перенаправлений модуля -->
-    <script src="https://unpkg.com"></script>
+    <!-- Подключаем библиотеку через проверенный CDN для 2026 года -->
+    <script src="https://cdn.jsdelivr.net"></script>
 
     <script>
-        // Теперь работаем через обычный JS, так как unpkg подгружает библиотеку глобально
-        document.getElementById('start-btn').addEventListener('click', async () => {
-            const nick = document.getElementById('username').value;
-            const status = document.getElementById('status');
+        // Ждем полной загрузки страницы
+        window.onload = function() {
             const startBtn = document.getElementById('start-btn');
-            
-            if (nick.length < 3) return alert("Ник слишком короткий!");
+            const status = document.getElementById('status');
 
-            startBtn.disabled = true;
-            status.innerText = "Инициализация...";
+            startBtn.addEventListener('click', async () => {
+                const nick = document.getElementById('username').value;
+                
+                if (nick.length < 3) return alert("Ник слишком короткий");
 
-            try {
-                // Если библиотека загрузилась через unpkg, она будет доступна в объекте Pojav
-                if (typeof Pojav === 'undefined') {
-                    throw new Error("Библиотека PojavJS не загрузилась. Проверь интернет.");
+                // Проверяем, загрузилась ли библиотека (она может называться PojavJS или Pojav)
+                const library = window.Pojav || window.PojavJS;
+
+                if (!library) {
+                    return alert("Ошибка: Библиотека движка не смогла загрузиться. Попробуй обновить страницу или зайти через VPN.");
                 }
 
-                document.getElementById('launcher').style.display = 'none';
-                document.getElementById('game-container').style.display = 'block';
+                startBtn.disabled = true;
+                status.innerText = "Загрузка 1.20.1...";
 
-                const mc = await Pojav.createRuntime({
-                    canvas: document.getElementById('canvas'),
-                    version: '1.20.1',
-                    root: './mods/', 
-                    username: nick,
-                    memory: 4096,
-                    mods: [
-                        'autotelly.jar',
-                        'fabric-api.jar'
-                    ]
-                });
+                try {
+                    document.getElementById('launcher').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
 
-                status.innerText = "Запуск игры...";
-                await mc.start();
+                    const mc = await library.createRuntime({
+                        canvas: document.getElementById('canvas'),
+                        version: '1.20.1',
+                        root: './mods/', 
+                        username: nick,
+                        memory: 4096,
+                        mods: [
+                            'autotelly.jar',
+                            'fabric-api.jar'
+                        ]
+                    });
 
-            } catch (err) {
-                console.error(err);
-                alert("Критическая ошибка! Посмотри консоль (F12).");
-                startBtn.disabled = false;
-                status.innerText = "Ошибка: " + err.message;
-            }
-        });
+                    await mc.start();
+                } catch (err) {
+                    console.error(err);
+                    alert("Ошибка при запуске игры. Проверь консоль.");
+                    document.getElementById('launcher').style.display = 'block';
+                    document.getElementById('game-container').style.display = 'none';
+                    startBtn.disabled = false;
+                }
+            });
+        };
     </script>
 </body>
 </html>
+
 
