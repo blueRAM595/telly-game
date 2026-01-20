@@ -3,57 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoTelly 1.20.1</title>
+    <title>AutoTelly 1.20.1 Browser Edition</title>
+    <!-- Подключаем твой CSS -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Дополнительные стили, чтобы всё выглядело ровно */
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; font-family: sans-serif; }
+        #launcher { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { background: #2a2a2a; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; color: white; }
+        input { padding: 12px; border-radius: 5px; border: none; margin-bottom: 20px; width: 250px; font-size: 16px; background: #3d3d3d; color: white; }
+        button { padding: 12px 30px; background: #55a84a; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #66c158; transform: scale(1.05); }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #status { margin-top: 20px; color: #aaa; font-size: 14px; }
+        #canvas { width: 100vw; height: 100vh; display: none; background: #000; }
+    </style>
 </head>
 <body>
+
+    <!-- Экран Лаунчера -->
     <div id="launcher">
         <div class="login-card">
             <h1>AutoTelly Cloud</h1>
             <p>Версия: 1.20.1 Fabric</p>
-            <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
+            <input type="text" id="username" placeholder="Введите ваш никнейм" maxlength="16">
+            <br>
             <button id="start-btn">ЗАПУСТИТЬ ИГРУ</button>
-            <div id="status" style="margin-top: 15px; color: gray;">Система готова</div>
+            <div id="status">Система готова для 2026 года</div>
         </div>
     </div>
 
-    <!-- Полноэкранный канвас для игры -->
-    <canvas id="canvas" width="1280" height="720" style="display:none; width: 100%; height: 100vh; background: black;"></canvas>
+    <!-- Экран Игры -->
+    <canvas id="canvas"></canvas>
 
-    <!-- Подключаем твой файл -->
+    <!-- 1. Подключаем твой локальный pojav.js -->
     <script src="pojav.js"></script>
 
     <script>
-        // Привязываем кнопку через JavaScript (самый надежный метод 2026)
+        // Ждем клика на кнопку
         document.getElementById('start-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('start-btn');
             const nick = document.getElementById('username').value;
             const status = document.getElementById('status');
-            const btn = document.getElementById('start-btn');
 
+            // Простая проверка ника
             if (nick.length < 3) {
-                alert("Ник должен быть не короче 3 символов!");
+                alert("Ник слишком короткий! Минимум 3 символа.");
                 return;
             }
 
-            // Проверяем, видит ли браузер наш pojav.js
+            // Проверяем, загрузился ли наш файл pojav.js
             if (window.Pojav) {
-                btn.disabled = true;
+                btn.disabled = true; // Блокируем кнопку
                 status.innerText = "Инициализация...";
 
                 try {
-                    const runtime = await window.Pojav.createRuntime({
+                    // 2. Вызываем функцию из твоего pojav.js
+                    const game = await window.Pojav.createRuntime({
                         canvas: document.getElementById('canvas'),
                         username: nick,
-                        version: '1.20.1'
+                        version: '1.20.1',
+                        mods: ['./mods/autotelly.jar'] // Путь к твоему моду
                     });
                     
-                    await runtime.start();
+                    // 3. Запускаем процесс (в pojav.js там пойдут проценты)
+                    await game.start();
+
                 } catch (e) {
-                    alert("Ошибка: " + e.message);
+                    alert("Ошибка запуска: " + e.message);
                     btn.disabled = false;
+                    status.innerText = "Ошибка системы";
                 }
             } else {
-                alert("Ошибка: Файл pojav.js не найден в папке сайта!");
+                alert("Критическая ошибка: Файл pojav.js не найден в папке сайта!");
             }
         });
     </script>
