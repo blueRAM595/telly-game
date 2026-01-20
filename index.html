@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoTelly 1.20.1 Browser Edition</title>
+    <title>AutoTelly 1.20.1</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,62 +13,48 @@
             <p>Версия: 1.20.1 Fabric</p>
             <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
             <button id="start-btn">ЗАПУСТИТЬ ИГРУ</button>
-            <div id="status">Ожидание загрузки движка...</div>
+            <div id="status" style="margin-top: 15px; color: gray;">Система готова</div>
         </div>
     </div>
 
-    <!-- Контейнер для игры -->
-    <div id="game-container" style="display:none;">
-        <canvas id="canvas" style="width: 100vw; height: 100vh; background: #000;"></canvas>
-    </div>
+    <!-- Полноэкранный канвас для игры -->
+    <canvas id="canvas" width="1280" height="720" style="display:none; width: 100%; height: 100vh; background: black;"></canvas>
 
-    <!-- Подключаем твой исправленный файл -->
+    <!-- Подключаем твой файл -->
     <script src="pojav.js"></script>
 
     <script>
-        window.addEventListener('load', () => {
-            const startBtn = document.getElementById('start-btn');
+        // Привязываем кнопку через JavaScript (самый надежный метод 2026)
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            const nick = document.getElementById('username').value;
             const status = document.getElementById('status');
+            const btn = document.getElementById('start-btn');
 
-            // Интервал проверки, загрузился ли движок из pojav.js
-            const checkLibrary = setInterval(() => {
-                const lib = window.Pojav || window.PojavJS || window.default;
-                if (lib) {
-                    status.innerText = "Готов к запуску";
-                    clearInterval(checkLibrary);
-                }
-            }, 500);
+            if (nick.length < 3) {
+                alert("Ник должен быть не короче 3 символов!");
+                return;
+            }
 
-            startBtn.addEventListener('click', async () => {
-                const nick = document.getElementById('username').value;
-                const lib = window.Pojav || window.PojavJS || window.default;
-
-                if (nick.length < 3) return alert("Ник слишком короткий");
-                if (!lib) return alert("Движок еще не загружен. Попробуй VPN или обнови страницу.");
-
-                startBtn.disabled = true;
-                status.innerText = "Запуск 1.20.1...";
+            // Проверяем, видит ли браузер наш pojav.js
+            if (window.Pojav) {
+                btn.disabled = true;
+                status.innerText = "Инициализация...";
 
                 try {
-                    document.getElementById('launcher').style.display = 'none';
-                    document.getElementById('game-container').style.display = 'block';
-
-                    const mc = await lib.createRuntime({
+                    const runtime = await window.Pojav.createRuntime({
                         canvas: document.getElementById('canvas'),
-                        version: '1.20.1',
-                        root: './mods/', 
                         username: nick,
-                        memory: 4096,
-                        mods: ['autotelly.jar', 'fabric-api.jar']
+                        version: '1.20.1'
                     });
-
-                    await mc.start();
-                } catch (err) {
-                    console.error(err);
-                    alert("Ошибка: " + err.message);
-                    startBtn.disabled = false;
+                    
+                    await runtime.start();
+                } catch (e) {
+                    alert("Ошибка: " + e.message);
+                    btn.disabled = false;
                 }
-            });
+            } else {
+                alert("Ошибка: Файл pojav.js не найден в папке сайта!");
+            }
         });
     </script>
 </body>
