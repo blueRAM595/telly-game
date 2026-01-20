@@ -5,83 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoTelly 1.20.1 Browser Edition</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Стили, чтобы точно не было белого экрана */
-        body { margin: 0; background: #f0f0f0; font-family: sans-serif; }
-        #launcher { display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
-        input { padding: 10px; margin: 10px 0; width: 200px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        #canvas { width: 100vw; height: 100vh; display: none; background: #000; }
-    </style>
 </head>
 <body>
-
     <div id="launcher">
         <div class="login-card">
             <h1>AutoTelly Cloud</h1>
             <p>Версия: 1.20.1 Fabric</p>
             <input type="text" id="username" placeholder="Ваш никнейм" maxlength="16">
-            <br>
             <button id="start-btn">ЗАПУСТИТЬ ИГРУ</button>
-            <div id="status" style="margin-top:15px; color: #666;">Ожидание движка...</div>
+            <div id="status">Ожидание загрузки движка...</div>
         </div>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <!-- Контейнер для игры -->
+    <div id="game-container" style="display:none;">
+        <canvas id="canvas" style="width: 100vw; height: 100vh; background: #000;"></canvas>
+    </div>
 
-    <!-- Загружаем движок напрямую (проверенная ссылка 2026) -->
-    <script src="https://cdn.jsdelivr.net"></script>
+    <!-- Подключаем твой исправленный файл -->
+    <script src="pojav.js"></script>
 
     <script>
-        // Ждем загрузки страницы
         window.addEventListener('load', () => {
             const startBtn = document.getElementById('start-btn');
             const status = document.getElementById('status');
-            const launcher = document.getElementById('launcher');
-            const canvas = document.getElementById('canvas');
 
-            // Проверяем наличие библиотеки
-            const Pojav = window.Pojav || window.PojavJS || window.default;
-            if (Pojav) {
-                status.innerText = "Движок готов!";
-            } else {
-                status.innerText = "Ошибка загрузки движка. Обнови страницу.";
-            }
+            // Интервал проверки, загрузился ли движок из pojav.js
+            const checkLibrary = setInterval(() => {
+                const lib = window.Pojav || window.PojavJS || window.default;
+                if (lib) {
+                    status.innerText = "Готов к запуску";
+                    clearInterval(checkLibrary);
+                }
+            }, 500);
 
             startBtn.addEventListener('click', async () => {
                 const nick = document.getElementById('username').value;
-                if (nick.length < 3) return alert("Ник слишком короткий");
+                const lib = window.Pojav || window.PojavJS || window.default;
 
-                if (!Pojav) return alert("Движок не найден. Попробуй VPN или Ctrl+F5");
+                if (nick.length < 3) return alert("Ник слишком короткий");
+                if (!lib) return alert("Движок еще не загружен. Попробуй VPN или обнови страницу.");
 
                 startBtn.disabled = true;
-                status.innerText = "Загрузка ресурсов...";
+                status.innerText = "Запуск 1.20.1...";
 
                 try {
-                    // Прячем меню, показываем игру
-                    launcher.style.display = 'none';
-                    canvas.style.display = 'block';
+                    document.getElementById('launcher').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
 
-                    const mc = await Pojav.createRuntime({
-                        canvas: canvas,
+                    const mc = await lib.createRuntime({
+                        canvas: document.getElementById('canvas'),
                         version: '1.20.1',
                         root: './mods/', 
                         username: nick,
                         memory: 4096,
-                        mods: [
-                            'autotelly.jar',
-                            'fabric-api.jar'
-                        ]
+                        mods: ['autotelly.jar', 'fabric-api.jar']
                     });
 
                     await mc.start();
                 } catch (err) {
                     console.error(err);
                     alert("Ошибка: " + err.message);
-                    launcher.style.display = 'flex';
-                    canvas.style.display = 'none';
                     startBtn.disabled = false;
                 }
             });
