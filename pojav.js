@@ -1,97 +1,111 @@
-// AutoTelly Engine 2026 — Собственная разработка (No Libraries)
 window.Pojav = {
     async createRuntime(options) {
-        const status = document.getElementById('status');
         const canvas = options.canvas;
         const ctx = canvas.getContext('2d');
-
+        
         return {
             start: async () => {
-                // 1. ИСПРАВЛЕНИЕ ОГРОМНЫХ БУКВ
-                // Устанавливаем реальное разрешение холста равным размеру окна
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-
-                // Скрываем меню
                 document.getElementById('launcher').style.display = 'none';
                 canvas.style.display = 'block';
 
-                // 2. ИНИЦИАЛИЗАЦИЯ СЕТЕВОГО ЯДРА (Multiplayer)
-                this.initNetwork(ctx, options.username, canvas);
+                this.gameState = 'MAIN_MENU'; // Состояние: MAIN_MENU, SINGLE, MULTI
+                this.nick = options.username;
                 
-                // 3. ЗАПУСК ЦИКЛА ГРАФИКИ (Game Loop)
-                this.runGameLoop(ctx, canvas, options.username);
+                this.initListeners(canvas);
+                this.runEngine(ctx, canvas);
             }
         };
     },
 
-    initNetwork(ctx, nick, canvas) {
-        console.log("Попытка подключения к серверу...");
-        // В будущем здесь будет адрес твоего WebSocket-прокси
-        // Для теста создаем попытку подключения
-        const ws = new WebSocket('ws://localhost:8080'); 
-        ws.binaryType = 'arraybuffer';
+    // Обработка кликов по кнопкам меню
+    initListeners(canvas) {
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = canvas.width / 2;
 
-        ws.onopen = () => {
-            console.log("Сетевой поток открыт");
-        };
-
-        ws.onerror = () => {
-            // Рисуем ошибку прямо на канвасе
-            ctx.fillStyle = "#ff4757";
-            ctx.font = "20px Arial";
-            ctx.fillText("Ошибка: Сервер 1.20.1 не отвечает (нужен WebSocket Proxy)", 50, canvas.height - 50);
-        };
+            if (this.gameState === 'MAIN_MENU') {
+                // Кнопка Одиночная игра (проверка по координатам)
+                if (x > centerX - 150 && x < centerX + 150 && y > 200 && y < 250) {
+                    this.gameState = 'SINGLE';
+                }
+                // Кнопка Сетевая игра
+                if (x > centerX - 150 && x < centerX + 150 && y > 270 && y < 320) {
+                    this.gameState = 'MULTI';
+                }
+            }
+        });
     },
 
-    runGameLoop(ctx, canvas, nick) {
-        let frame = 0;
-
+    runEngine(ctx, canvas) {
         const animate = () => {
-            frame++;
-            
-            // Очистка экрана
-            ctx.fillStyle = "#1a1a1a"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const centerX = canvas.width / 2;
 
-            // Рендерим "Мир" (пока это сетка, которую мы превратим в 3D)
-            ctx.strokeStyle = "#333";
-            for(let i = 0; i < canvas.width; i += 50) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
+            if (this.gameState === 'MAIN_MENU') {
+                this.drawMenu(ctx, canvas, centerX);
+            } else if (this.gameState === 'SINGLE') {
+                this.drawWorld(ctx, canvas, "Одиночный мир (Загрузка...)");
+            } else if (this.gameState === 'MULTI') {
+                this.drawWorld(ctx, canvas, "Поиск серверов 1.20.1...");
             }
-
-            // ИНТЕРФЕЙС ИГРЫ (HUD)
-            ctx.fillStyle = "#55a84a";
-            ctx.font = "bold 24px sans-serif";
-            ctx.fillText("AutoTelly 1.20.1 Build 2026", 30, 50);
-
-            ctx.fillStyle = "white";
-            ctx.font = "18px sans-serif";
-            ctx.fillText("Игрок: " + nick, 30, 85);
-            ctx.fillText("FPS: 60", 30, 110);
-
-            // Имитация чата (как на серверах)
-            ctx.fillStyle = "rgba(0,0,0,0.5)";
-            ctx.fillRect(20, canvas.height - 150, 400, 100);
-            ctx.fillStyle = "white";
-            ctx.fillText("[Система] Поиск серверов...", 35, canvas.height - 120);
-            if (frame > 100) ctx.fillText("[AutoTelly] Добро пожаловать в мультиплеер!", 35, canvas.height - 90);
 
             requestAnimationFrame(animate);
         };
-
         animate();
+    },
+
+    drawMenu(ctx, canvas, centerX) {
+        // Фон меню (панорама)
+        ctx.fillStyle = "#1e3799"; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Логотип
+        ctx.fillStyle = "white";
+        ctx.font = "bold 50px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("AUTOTELLY 2026", centerX, 120);
+
+        // Кнопка 1: Одиночная игра
+        this.drawButton(ctx, centerX - 150, 200, 300, 50, "Одиночная игра");
+
+        // Кнопка 2: Сетевая игра
+        this.drawButton(ctx, centerX - 150, 270, 300, 50, "Сетевая игра");
+
+        // Подпись снизу
+        ctx.font = "16px sans-serif";
+        ctx.fillStyle = "#aaa";
+        ctx.fillText("Версия 1.20.1 Fabric | Игрок: " + this.nick, centerX, canvas.height - 30);
+    },
+
+    drawButton(ctx, x, y, w, h, text) {
+        ctx.fillStyle = "#444";
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = "white";
+        ctx.font = "20px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(text, x + w / 2, y + 32);
+    },
+
+    drawWorld(ctx, canvas, statusText) {
+        // Симуляция игрового мира
+        ctx.fillStyle = "#74b9ff"; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = "white";
+        ctx.font = "30px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(statusText, canvas.width / 2, canvas.height / 2);
+        
+        // Кнопка Назад
+        ctx.font = "18px sans-serif";
+        ctx.fillText("Нажми F5 для выхода в меню", canvas.width / 2, canvas.height / 2 + 50);
     }
 };
-
-// Обработка изменения размера окна, чтобы буквы не ломались при ресайзе
-window.addEventListener('resize', () => {
-    const canvas = document.getElementById('canvas');
-    if (canvas && canvas.style.display === 'block') {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-});
